@@ -2560,9 +2560,14 @@ function completeToss(decision) {
   const batRoster = batFirstTeam === 'CSK' ? CSK_BATTING_ORDER : RCB_BATTING_ORDER;
   const bowlRoster = bowlFirstTeam === 'RCB' ? RCB_BOWLING_ORDER : CSK_BATTING_ORDER.filter(b => ['Jamie Overton','Anshul Kamboj','Mukesh Choudhary','Noor Ahmad','Khaleel Ahmed'].includes(b.name));
   
-  if (strInput) strInput.value = batRoster[0].name;
-  if (nsInput) nsInput.value = batRoster[1].name;
-  if (bwInput && bowlRoster.length > 0) bwInput.value = bowlRoster[0].name;
+  STATE.striker.name = batRoster[0].name;
+  STATE.striker.initials = getInitials(batRoster[0].name);
+  STATE.nonStriker.name = batRoster[1].name;
+  STATE.nonStriker.initials = getInitials(batRoster[1].name);
+  if (bowlRoster.length > 0) {
+    STATE.bowler.name = bowlRoster[0].name;
+    STATE.bowler.initials = getInitials(bowlRoster[0].name);
+  }
   
   document.getElementById('toss-modal').style.display = 'none';
   
