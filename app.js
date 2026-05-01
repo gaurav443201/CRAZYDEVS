@@ -2616,7 +2616,7 @@ function showRainModal() {
       '</div>' +
       '<div style="padding: 30px;">' +
         '<p style="color: #94a3b8; font-size: 1.1rem; margin-bottom: 20px;">Time cost penalty added. Covers are coming on.</p>' +
-        '<button class="msm-btn" style="background: #3b82f6; color: #fff; padding: 12px 30px; border: none; font-weight: bold; border-radius: 6px; cursor: pointer;" onclick="document.getElementById(\\\'rain-modal\\\').remove()">ACKNOWLEDGE</button>' +
+        '<button class="msm-btn" style="background: #3b82f6; color: #fff; padding: 12px 30px; border: none; font-weight: bold; border-radius: 6px; cursor: pointer;" onclick="document.getElementById(\'rain-modal\').remove()">ACKNOWLEDGE</button>' +
       '</div>' +
     '</div>' +
   '</div>';
@@ -2656,7 +2656,7 @@ function showDewModal() {
       '</div>' +
       '<div style="padding: 30px;">' +
         '<p style="color: #94a3b8; font-size: 1.1rem; margin-bottom: 20px;">Match speed-up factor applied. Bowlers will struggle to grip the ball.</p>' +
-        '<button class="msm-btn" style="background: #06b6d4; color: #fff; padding: 12px 30px; border: none; font-weight: bold; border-radius: 6px; cursor: pointer;" onclick="document.getElementById(\\\'dew-modal\\\').remove()">ACKNOWLEDGE</button>' +
+        '<button class="msm-btn" style="background: #06b6d4; color: #fff; padding: 12px 30px; border: none; font-weight: bold; border-radius: 6px; cursor: pointer;" onclick="document.getElementById(\'dew-modal\').remove()">ACKNOWLEDGE</button>' +
       '</div>' +
     '</div>' +
   '</div>';
