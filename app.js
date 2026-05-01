@@ -1821,6 +1821,7 @@ function toggleRain() {
     STATE.totalAddedSeconds += TIME_COST.rain;
     STATE.addedRain += TIME_COST.rain;
     STATE.rainCount++;
+    showRainModal();
   } else {
     // Remove the last rain addition
     const rainRemove = Math.min(STATE.totalAddedSeconds, TIME_COST.rain);
@@ -1844,6 +1845,9 @@ function toggleRain() {
 
 function toggleDew() {
   STATE.isDew = !STATE.isDew;
+  if (STATE.isDew) {
+    showDewModal();
+  }
   const btn = document.getElementById('dew-toggle-btn');
   if (btn) {
     btn.textContent = STATE.isDew ? 'ON' : 'OFF';
@@ -2592,6 +2596,119 @@ function completeToss(decision) {
   document.getElementById('toss-modal').style.display = 'none';
   
   initSettings();
+}
+
+// ============================================================
+// RAIN & DEW MODALS
+// ============================================================
+
+function ensureWeatherStyles() {
+  if (!document.getElementById('weather-styles')) {
+    var style = document.createElement('style');
+    style.id = 'weather-styles';
+    style.innerHTML = `
+      @keyframes rainDrop {
+        0% { transform: translateY(-100px); }
+        100% { transform: translateY(100vh); }
+      }
+      @keyframes dewSparkle {
+        0% { transform: scale(1); opacity: 0.2; }
+        100% { transform: scale(1.5); opacity: 1; }
+      }
+      @keyframes floatRain {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-10px); }
+      }
+      @keyframes pulseDew {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+      }
+      .rain-anim { animation: floatRain 2s ease-in-out infinite; }
+      .dew-anim { animation: pulseDew 2s ease-in-out infinite; }
+    `;
+    document.head.appendChild(style);
+  }
+}
+
+function showRainModal() {
+  ensureWeatherStyles();
+  var overlay = document.getElementById('rain-modal');
+  if (overlay) overlay.remove();
+
+  var html = '<div class="msm-overlay" id="rain-modal" style="z-index: 10000; overflow: hidden;">' +
+    '<div class="rain-container" style="position: absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; opacity: 0.5;"></div>' +
+    '<div class="msm-dialog" style="max-width: 500px; text-align: center; position: relative; z-index: 2;">' +
+      '<div class="msm-header" style="background: linear-gradient(135deg, #1e2a3a 0%, #111827 100%);">' +
+        '<div class="msm-trophy rain-anim" style="font-size:4rem; margin-bottom: 10px;">🌧️</div>' +
+        '<h2 class="msm-title" style="color: #3b82f6; text-shadow: 0 0 10px rgba(59,130,246,0.5);">RAIN DELAY</h2>' +
+        '<p class="msm-subtitle">Match paused &middot; Players are off the field</p>' +
+      '</div>' +
+      '<div style="padding: 30px;">' +
+        '<p style="color: #94a3b8; font-size: 1.1rem; margin-bottom: 20px;">Time cost penalty added. Covers are coming on.</p>' +
+        '<button class="msm-btn" style="background: #3b82f6; color: #fff; padding: 12px 30px; border: none; font-weight: bold; border-radius: 6px; cursor: pointer;" onclick="document.getElementById(\\\'rain-modal\\\').remove()">ACKNOWLEDGE</button>' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+
+  document.body.insertAdjacentHTML('beforeend', html);
+
+  // Generate rain drops
+  const container = document.querySelector('.rain-container');
+  if (container) {
+    for (let i = 0; i < 50; i++) {
+      let drop = document.createElement('div');
+      drop.style.position = 'absolute';
+      drop.style.background = 'linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0.8))';
+      drop.style.width = '2px';
+      drop.style.height = (Math.random() * 20 + 20) + 'px';
+      drop.style.left = (Math.random() * 100) + 'vw';
+      drop.style.top = '-' + (Math.random() * 100) + 'px';
+      drop.style.animation = 'rainDrop ' + (Math.random() * 0.5 + 0.5) + 's linear infinite';
+      drop.style.opacity = Math.random();
+      container.appendChild(drop);
+    }
+  }
+}
+
+function showDewModal() {
+  ensureWeatherStyles();
+  var overlay = document.getElementById('dew-modal');
+  if (overlay) overlay.remove();
+
+  var html = '<div class="msm-overlay" id="dew-modal" style="z-index: 10000; overflow: hidden;">' +
+    '<div class="dew-container" style="position: absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; opacity: 0.3;"></div>' +
+    '<div class="msm-dialog" style="max-width: 500px; text-align: center; position: relative; z-index: 2;">' +
+      '<div class="msm-header" style="background: linear-gradient(135deg, #1e2a3a 0%, #111827 100%);">' +
+        '<div class="msm-trophy dew-anim" style="font-size:4rem; margin-bottom: 10px;">💧</div>' +
+        '<h2 class="msm-title" style="color: #06b6d4; text-shadow: 0 0 15px rgba(6,182,212,0.5);">HEAVY DEW FACTOR</h2>' +
+        '<p class="msm-subtitle">Outfield is wet &middot; Ball is slipping</p>' +
+      '</div>' +
+      '<div style="padding: 30px;">' +
+        '<p style="color: #94a3b8; font-size: 1.1rem; margin-bottom: 20px;">Match speed-up factor applied. Bowlers will struggle to grip the ball.</p>' +
+        '<button class="msm-btn" style="background: #06b6d4; color: #fff; padding: 12px 30px; border: none; font-weight: bold; border-radius: 6px; cursor: pointer;" onclick="document.getElementById(\\\'dew-modal\\\').remove()">ACKNOWLEDGE</button>' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+
+  document.body.insertAdjacentHTML('beforeend', html);
+
+  // Generate dew sparkles
+  const container = document.querySelector('.dew-container');
+  if (container) {
+    for (let i = 0; i < 30; i++) {
+      let sparkle = document.createElement('div');
+      sparkle.style.position = 'absolute';
+      sparkle.style.background = '#06b6d4';
+      sparkle.style.borderRadius = '50%';
+      sparkle.style.width = (Math.random() * 4 + 2) + 'px';
+      sparkle.style.height = sparkle.style.width;
+      sparkle.style.left = (Math.random() * 100) + 'vw';
+      sparkle.style.top = (Math.random() * 100) + 'vh';
+      sparkle.style.animation = 'dewSparkle ' + (Math.random() * 2 + 1) + 's ease-in-out infinite alternate';
+      sparkle.style.boxShadow = '0 0 8px #06b6d4';
+      container.appendChild(sparkle);
+    }
+  }
 }
 
 // Restore theme on load
