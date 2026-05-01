@@ -616,6 +616,18 @@ function addEvent(type) {
 // BATTER SELECTION MODAL
 // ============================================================
 function showBatterModal() {
+  const titleEl = document.querySelector('#batter-modal .sel-title');
+  const subtitleEl = document.querySelector('#batter-modal .sel-subtitle');
+  if (titleEl && subtitleEl) {
+    if (STATE.totalBalls === 0) {
+      titleEl.textContent = STATE.striker.name === '- Incoming -' ? 'SELECT STRIKER' : 'SELECT NON-STRIKER';
+      subtitleEl.textContent = 'Match Starting · Choose opener';
+    } else {
+      titleEl.textContent = 'SELECT NEXT BATTER';
+      subtitleEl.textContent = 'WICKET FALLEN · Choose incoming batsman';
+    }
+  }
+
   const dismissedNames = new Set(STATE.dismissals.map(d => d.name));
   const battingTeamName = STATE.innings === 1 ? STATE.teamA : STATE.teamB;
   const roster = battingTeamName === 'CSK' ? CSK_BATTING_ORDER : RCB_BATTING_ORDER;
@@ -670,14 +682,24 @@ function selectBatter(name, initials) {
     showTimingToast('🏏 ' + name, delaySec, 'Batter change');
   }
 
-  if (STATE.nonStriker && STATE.nonStriker.name === '- Incoming -') {
-    STATE.nonStriker = { name: name, initials: initials, runs: 0, balls: 0, fours: 0, sixes: 0 };
-    var inp = document.getElementById('nonstriker-name-input');
-    if (inp) inp.value = name;
-  } else {
+  if (STATE.striker && STATE.striker.name === '- Incoming -') {
     STATE.striker = { name: name, initials: initials, runs: 0, balls: 0, fours: 0, sixes: 0 };
     var inp = document.getElementById('striker-name-input');
     if (inp) inp.value = name;
+    
+    if (STATE.nonStriker && STATE.nonStriker.name === '- Incoming -') {
+      setTimeout(() => { showBatterModal(); }, 400);
+    } else if (STATE.bowler && STATE.bowler.name === '- Incoming -') {
+      setTimeout(() => { showBowlerModal(); }, 400);
+    }
+  } else {
+    STATE.nonStriker = { name: name, initials: initials, runs: 0, balls: 0, fours: 0, sixes: 0 };
+    var inp = document.getElementById('nonstriker-name-input');
+    if (inp) inp.value = name;
+
+    if (STATE.bowler && STATE.bowler.name === '- Incoming -') {
+      setTimeout(() => { showBowlerModal(); }, 400);
+    }
   }
   
   STATE.partnershipRuns  = 0;
@@ -694,6 +716,18 @@ function selectBatter(name, initials) {
 function showBowlerModal() {
   // Don't show bowler selector if match has ended
   if (STATE.matchEnded) return;
+
+  const titleEl = document.querySelector('#bowler-modal .sel-title');
+  const subtitleEl = document.querySelector('#bowler-modal .sel-subtitle');
+  if (titleEl && subtitleEl) {
+    if (STATE.totalBalls === 0) {
+      titleEl.textContent = 'SELECT OPENING BOWLER';
+      subtitleEl.textContent = 'Match Starting · Choose bowler';
+    } else {
+      titleEl.textContent = 'SELECT NEXT BOWLER';
+      subtitleEl.textContent = 'OVER COMPLETE · Choose bowler';
+    }
+  }
 
   var nextOverNum = STATE.oversCompleted + 1;
   var overLabel   = document.getElementById('bowler-modal-over');
@@ -1478,36 +1512,7 @@ function renderHeaderOverBalls() {
 }
 
 function updatePlayerUI() {
-  // If match hasn't started yet, hide defaults
-  if (STATE.innings === 1 && STATE.legalBalls === 0 && STATE.extras === 0 && STATE.wickets === 0 && STATE.eventHistory.length === 0) {
-    setText('striker-name', '— Waiting for Toss —');
-    setText('striker-runs', '-');
-    setText('striker-balls', '-');
-    setText('striker-fours', '-');
-    setText('striker-sixes', '-');
-    setText('striker-sr', '-');
-    setText('striker-avatar', '?');
-    const srBar = document.getElementById('striker-sr-bar');
-    if (srBar) srBar.style.width = '0%';
-
-    setText('nonstriker-name', '— Waiting for Toss —');
-    setText('nonstriker-runs', '-');
-    setText('nonstriker-balls', '-');
-    setText('nonstriker-fours', '-');
-    setText('nonstriker-sixes', '-');
-    setText('nonstriker-sr', '-');
-    setText('nonstriker-avatar', '?');
-
-    setText('bowler-name', '— Match Not Started —');
-    setText('bowler-overs', '-');
-    setText('bowler-runs', '-');
-    setText('bowler-wkts', '-');
-    setText('bowler-econ', '-');
-    setText('bowler-wides', '-');
-    setText('bowler-nb', '-');
-    setText('bowler-avatar', '?');
-    return;
-  }
+  // The assigned players will now immediately be displayed instead of waiting for the first ball.
 
   // Striker
   const s = STATE.striker;
@@ -2586,16 +2591,15 @@ function completeToss(decision) {
   const nsInput = document.getElementById('nonstriker-name-input');
   const bwInput = document.getElementById('bowler-name-input');
   
-  const batRoster = batFirstTeam === 'CSK' ? CSK_BATTING_ORDER : RCB_BATTING_ORDER;
-  const bowlRoster = bowlFirstTeam === 'RCB' ? RCB_BOWLING_ORDER : CSK_BATTING_ORDER.filter(b => ['Jamie Overton','Anshul Kamboj','Mukesh Choudhary','Noor Ahmad','Khaleel Ahmed'].includes(b.name));
-  
-  if (strInput) strInput.value = batRoster[0].name;
-  if (nsInput) nsInput.value = batRoster[1].name;
-  if (bwInput && bowlRoster.length > 0) bwInput.value = bowlRoster[0].name;
+  if (strInput) strInput.value = '- Incoming -';
+  if (nsInput) nsInput.value = '- Incoming -';
+  if (bwInput) bwInput.value = '- Incoming -';
   
   document.getElementById('toss-modal').style.display = 'none';
   
   initSettings();
+  
+  setTimeout(() => { showBatterModal(); }, 400);
 }
 
 // ============================================================
