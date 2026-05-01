@@ -220,6 +220,9 @@ document.addEventListener('DOMContentLoaded', () => {
   loadSavedMatches();
   startElapsedTimer();
   initSettings();
+  
+  // Show the toss modal if this is a brand new match
+  setTimeout(showTossModal, 500);
 });
 
 
@@ -253,10 +256,7 @@ function updateTotalOvers() {
 function updateTeamNames() {
   STATE.teamA = document.getElementById('team-a-input').value || 'TEAM A';
   STATE.teamB = document.getElementById('team-b-input').value || 'TEAM B';
-  document.getElementById('team-a-name').textContent = STATE.teamA;
-  document.getElementById('team-b-name').textContent = STATE.teamB;
-  document.getElementById('team-a-logo').textContent = STATE.teamA.substring(0, 3).toUpperCase();
-  document.getElementById('team-b-logo').textContent = STATE.teamB.substring(0, 3).toUpperCase();
+  updateAllUI();
 }
 
 function updatePlayers() {
@@ -499,14 +499,19 @@ function addEvent(type) {
     case 'equipment':
     case 'batter-reset':
     case 'freehit':
-    case 'timeout':
     case 'injured':
       STATE.addedOther += addedSec;
       isLegal = false; break;
 
+    case 'timeout':
+      STATE.addedOther += addedSec;
+      showTimeoutModal();
+      isLegal = false; break;
+
     case 'bowler-change':
-      // Cycle to next RCB bowler
-      const bowlerRoster = STATE.innings === 1 ? RCB_BOWLING_ORDER : CSK_BATTING_ORDER.slice(7); // tail = bowl
+      // Cycle to next bowler
+      const bowlingTeam = STATE.innings === 1 ? STATE.teamB : STATE.teamA;
+      const bowlerRoster = bowlingTeam === 'RCB' ? RCB_BOWLING_ORDER : CSK_BATTING_ORDER.filter(b => ['Jamie Overton','Anshul Kamboj','Mukesh Choudhary','Noor Ahmad'].includes(b.name));
       const nextBowler   = bowlerRoster[rcbBowlerIndex % bowlerRoster.length];
       rcbBowlerIndex++;
       // Save current bowler stats to list before switching
@@ -611,7 +616,8 @@ function addEvent(type) {
 // ============================================================
 function showBatterModal() {
   const dismissedNames = new Set(STATE.dismissals.map(d => d.name));
-  const roster = STATE.innings === 1 ? CSK_BATTING_ORDER : RCB_BATTING_ORDER;
+  const battingTeamName = STATE.innings === 1 ? STATE.teamA : STATE.teamB;
+  const roster = battingTeamName === 'CSK' ? CSK_BATTING_ORDER : RCB_BATTING_ORDER;
   const occupied = new Set([STATE.striker.name, STATE.nonStriker.name]);
 
   const remaining = roster.filter(b =>
@@ -694,7 +700,8 @@ function showBowlerModal() {
   var avatarClass = STATE.innings === 1 ? 'rcb-av' : 'csk-av';
   // (applied inline per player below)
 
-  var roster = STATE.innings === 1 ? RCB_BOWLING_ORDER :
+  var bowlingTeam = STATE.innings === 1 ? STATE.teamB : STATE.teamA;
+  var roster = bowlingTeam === 'RCB' ? RCB_BOWLING_ORDER :
     CSK_BATTING_ORDER.filter(function(b) {
       return ['Jamie Overton','Anshul Kamboj','Mukesh Choudhary','Noor Ahmad'].indexOf(b.name) >= 0;
     });
@@ -733,7 +740,8 @@ function showBowlerModal() {
 }
 
 function selectBowler(index) {
-  var roster = STATE.innings === 1 ? RCB_BOWLING_ORDER :
+  var bowlingTeam = STATE.innings === 1 ? STATE.teamB : STATE.teamA;
+  var roster = bowlingTeam === 'RCB' ? RCB_BOWLING_ORDER :
     CSK_BATTING_ORDER.filter(function(b) {
       return ['Jamie Overton','Anshul Kamboj','Mukesh Choudhary','Noor Ahmad'].indexOf(b.name) >= 0;
     });
@@ -1342,16 +1350,36 @@ function updateScoreboard() {
   setText('wd-count', STATE.wides);
   setText('nb-count', STATE.noBalls);
 
-  // ── DYNAMIC BATTING/BOWLING LABELS ─────────────────────────
+  // ── DYNAMIC BATTING/BOWLING LABELS & LOGO SWAP ────────────────
   const teamAElement = document.getElementById('team-a-name');
   const teamBElement = document.getElementById('team-b-name');
+  const teamALogo = document.getElementById('team-a-logo');
+  const teamBLogo = document.getElementById('team-b-logo');
+
   if (teamAElement && teamBElement) {
     if (STATE.innings === 1) {
       teamAElement.innerHTML = STATE.teamA + ' <span class="bat-ind">(BATTING)</span>';
       teamBElement.innerHTML = STATE.teamB + ' <span class="bowl-ind">(BOWLING)</span>';
+      if (teamALogo) {
+        teamALogo.textContent = STATE.teamA.substring(0,3).toUpperCase();
+        teamALogo.className = 'team-logo csk-logo';
+      }
+      if (teamBLogo) {
+        teamBLogo.textContent = STATE.teamB.substring(0,3).toUpperCase();
+        teamBLogo.className = 'team-logo rcb-logo';
+      }
     } else {
-      teamAElement.innerHTML = STATE.teamA + ' <span class="bowl-ind">(BOWLING)</span>';
-      teamBElement.innerHTML = STATE.teamB + ' <span class="bat-ind">(BATTING)</span>';
+      // INNINGS 2: Swap! Batting team (teamB) goes to the left, Bowling (teamA) to the right.
+      teamAElement.innerHTML = STATE.teamB + ' <span class="bat-ind">(BATTING)</span>';
+      teamBElement.innerHTML = STATE.teamA + ' <span class="bowl-ind">(BOWLING)</span>';
+      if (teamALogo) {
+        teamALogo.textContent = STATE.teamB.substring(0,3).toUpperCase();
+        teamALogo.className = 'team-logo rcb-logo';
+      }
+      if (teamBLogo) {
+        teamBLogo.textContent = STATE.teamA.substring(0,3).toUpperCase();
+        teamBLogo.className = 'team-logo csk-logo';
+      }
     }
   }
   setText('bye-count', STATE.byes);
@@ -2053,16 +2081,17 @@ function startSecondInnings() {
   cskBatterIndex = 0;   // reset batter index for RCB
   rcbBowlerIndex = 0;   // reset bowler index for CSK
 
-  // Set RCB openers
-  STATE.striker    = { name: RCB_BATTING_ORDER[0].name, initials: RCB_BATTING_ORDER[0].initials, runs: 0, balls: 0, fours: 0, sixes: 0 };
-  STATE.nonStriker = { name: RCB_BATTING_ORDER[1].name, initials: RCB_BATTING_ORDER[1].initials, runs: 0, balls: 0, fours: 0, sixes: 0 };
-  cskBatterIndex = 2;   // next incoming RCB batter is index 2
+  // Set openers for the 2nd innings batting team
+  var bat2Roster = STATE.teamB === 'CSK' ? CSK_BATTING_ORDER : RCB_BATTING_ORDER;
+  STATE.striker    = { name: bat2Roster[0].name, initials: bat2Roster[0].initials, runs: 0, balls: 0, fours: 0, sixes: 0 };
+  STATE.nonStriker = { name: bat2Roster[1].name, initials: bat2Roster[1].initials, runs: 0, balls: 0, fours: 0, sixes: 0 };
+  cskBatterIndex = 2;   // next incoming batter is index 2
 
-  // Set CSK opening bowler (Jamie Overton / Anshul Kamboj)
-  var cskBowlers = CSK_BATTING_ORDER.filter(function(b) {
+  // Set opening bowler for the 2nd innings bowling team
+  var bowl2Roster = STATE.teamA === 'RCB' ? RCB_BOWLING_ORDER : CSK_BATTING_ORDER.filter(function(b) {
     return ['Jamie Overton','Anshul Kamboj','Mukesh Choudhary','Noor Ahmad'].indexOf(b.name) >= 0;
   });
-  var opener = cskBowlers[0] || { name: 'CSK Bowler', initials: 'CB' };
+  var opener = bowl2Roster[0] || { name: 'Bowler', initials: 'BW' };
   STATE.bowler = { name: opener.name, initials: opener.initials, overs: 0, legalBalls: 0, runs: 0, wickets: 0, wides: 0, nb: 0 };
   rcbBowlerIndex = 1;
 
@@ -2070,11 +2099,7 @@ function startSecondInnings() {
   var tLabel = document.querySelector('.target-label');
   if (tLabel) tLabel.textContent = 'TARGET';
 
-  // Update team brand hero display
-  var taName = document.getElementById('team-a-name');
-  var tbName = document.getElementById('team-b-name');
-  if (taName) taName.textContent = STATE.teamA + ' (BOWLING)';
-  if (tbName) tbName.textContent = STATE.teamB + ' (BATTING)';
+  // (Team brand hero display is handled inside updateAllUI() which swaps them dynamically)
 
   // Sync settings inputs
   var strInp = document.getElementById('striker-name-input');
@@ -2397,6 +2422,51 @@ function initTheme() {
     if (tl) tl.textContent = 'Light';
   }
 }
+// ============================================================
+// TIMEOUT MODAL
+// ============================================================
+function showTimeoutModal() {
+  var overlay = document.getElementById('timeout-modal');
+  if (overlay) overlay.remove();
+
+  var html = '<div class="msm-overlay" id="timeout-modal">' +
+    '<div class="msm-dialog" style="max-width: 500px; text-align: center;">' +
+      '<div class="msm-header" style="background: linear-gradient(135deg, #1e2a3a 0%, #111827 100%);">' +
+        '<div class="msm-trophy" style="font-size:3rem; margin-bottom: 10px;">⏱</div>' +
+        '<h2 class="msm-title" style="color: #f59e0b;">STRATEGIC TIMEOUT</h2>' +
+        '<p class="msm-subtitle">Match Paused &middot; Players taking a break</p>' +
+      '</div>' +
+      '<div style="padding: 40px 20px;">' +
+        '<div id="timeout-timer" style="font-size: 5rem; font-weight: 900; font-family: \'Orbitron\', sans-serif; color: #00d68f; letter-spacing: 4px; text-shadow: 0 0 20px rgba(0, 214, 143, 0.4); margin-bottom: 30px; line-height: 1;">02:30</div>' +
+        '<button class="msm-btn msm-btn-primary" onclick="closeTimeoutModal()" style="font-size: 1.1rem; padding: 15px 40px; border: none; cursor: pointer;">RESUME MATCH NOW</button>' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+
+  document.body.insertAdjacentHTML('beforeend', html);
+
+  // Start the timer
+  var timeLeft = 150; // 2 minutes 30 seconds
+  var timerEl = document.getElementById('timeout-timer');
+  
+  if (window.timeoutInterval) clearInterval(window.timeoutInterval);
+  window.timeoutInterval = setInterval(function() {
+    timeLeft--;
+    if (timeLeft <= 0) {
+      closeTimeoutModal();
+      return;
+    }
+    var m = Math.floor(timeLeft / 60).toString().padStart(2, '0');
+    var s = (timeLeft % 60).toString().padStart(2, '0');
+    if (timerEl) timerEl.textContent = m + ':' + s;
+  }, 1000);
+}
+
+function closeTimeoutModal() {
+  var overlay = document.getElementById('timeout-modal');
+  if (overlay) overlay.remove();
+  if (window.timeoutInterval) clearInterval(window.timeoutInterval);
+}
 
 function showCustomAlert(title, message, icon) {
   var overlay = document.createElement('div');
@@ -2448,6 +2518,72 @@ function setTextClass(id, text, cls) {
 function setStyleProp(id, prop, val) {
   const el = document.getElementById(id);
   if (el) el.style[prop] = val;
+}
+
+// ============================================================
+// TOSS MODAL LOGIC
+// ============================================================
+let tossWinner = '';
+
+function showTossModal() {
+  if (STATE.totalBalls === 0 && !STATE.matchEnded) {
+    var overlay = document.getElementById('toss-modal');
+    if (overlay) overlay.style.display = 'flex';
+  }
+}
+
+function selectTossWinner(team) {
+  tossWinner = team;
+  document.getElementById('toss-winner-name').textContent = team;
+  document.getElementById('toss-winner-name').style.color = team === 'CSK' ? '#fbbd05' : '#c8102e';
+  
+  const coin = document.getElementById('toss-coin');
+  if (coin) {
+    coin.style.transform = 'rotateY(1800deg)';
+    coin.style.background = team === 'CSK' ? 'radial-gradient(circle, #fbbd05 0%, #d89600 100%)' : 'radial-gradient(circle, #c8102e 0%, #8b001a 100%)';
+    coin.textContent = team;
+  }
+  
+  setTimeout(() => {
+    document.getElementById('toss-controls').style.display = 'none';
+    document.getElementById('toss-decision').style.display = 'block';
+  }, 1500);
+}
+
+function completeToss(decision) {
+  let batFirstTeam = '';
+  let bowlFirstTeam = '';
+
+  if (decision === 'BAT') {
+    batFirstTeam = tossWinner;
+    bowlFirstTeam = tossWinner === 'CSK' ? 'RCB' : 'CSK';
+  } else {
+    bowlFirstTeam = tossWinner;
+    batFirstTeam = tossWinner === 'CSK' ? 'RCB' : 'CSK';
+  }
+
+  STATE.teamA = batFirstTeam;
+  STATE.teamB = bowlFirstTeam;
+  
+  const taInput = document.getElementById('team-a-input');
+  const tbInput = document.getElementById('team-b-input');
+  if (taInput) taInput.value = STATE.teamA;
+  if (tbInput) tbInput.value = STATE.teamB;
+  
+  const strInput = document.getElementById('striker-name-input');
+  const nsInput = document.getElementById('nonstriker-name-input');
+  const bwInput = document.getElementById('bowler-name-input');
+  
+  const batRoster = batFirstTeam === 'CSK' ? CSK_BATTING_ORDER : RCB_BATTING_ORDER;
+  const bowlRoster = bowlFirstTeam === 'RCB' ? RCB_BOWLING_ORDER : CSK_BATTING_ORDER.filter(b => ['Jamie Overton','Anshul Kamboj','Mukesh Choudhary','Noor Ahmad'].includes(b.name));
+  
+  if (strInput) strInput.value = batRoster[0].name;
+  if (nsInput) nsInput.value = batRoster[1].name;
+  if (bwInput && bowlRoster.length > 0) bwInput.value = bowlRoster[0].name;
+  
+  document.getElementById('toss-modal').style.display = 'none';
+  
+  initSettings();
 }
 
 // Restore theme on load
