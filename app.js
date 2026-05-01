@@ -19,6 +19,7 @@ const CSK_BATTING_ORDER = [
   { name: 'Anshul Kamboj',       initials: 'AK' },
   { name: 'Mukesh Choudhary',    initials: 'MC' },
   { name: 'Noor Ahmad',          initials: 'NA' },
+  { name: 'Khaleel Ahmed',       initials: 'KA' },
 ];
 
 const RCB_BOWLING_ORDER = [
@@ -511,7 +512,7 @@ function addEvent(type) {
     case 'bowler-change':
       // Cycle to next bowler
       const bowlingTeam = STATE.innings === 1 ? STATE.teamB : STATE.teamA;
-      const bowlerRoster = bowlingTeam === 'RCB' ? RCB_BOWLING_ORDER : CSK_BATTING_ORDER.filter(b => ['Jamie Overton','Anshul Kamboj','Mukesh Choudhary','Noor Ahmad'].includes(b.name));
+      const bowlerRoster = bowlingTeam === 'RCB' ? RCB_BOWLING_ORDER : CSK_BATTING_ORDER.filter(b => ['Jamie Overton','Anshul Kamboj','Mukesh Choudhary','Noor Ahmad','Khaleel Ahmed'].includes(b.name));
       const nextBowler   = bowlerRoster[rcbBowlerIndex % bowlerRoster.length];
       rcbBowlerIndex++;
       // Save current bowler stats to list before switching
@@ -703,7 +704,7 @@ function showBowlerModal() {
   var bowlingTeam = STATE.innings === 1 ? STATE.teamB : STATE.teamA;
   var roster = bowlingTeam === 'RCB' ? RCB_BOWLING_ORDER :
     CSK_BATTING_ORDER.filter(function(b) {
-      return ['Jamie Overton','Anshul Kamboj','Mukesh Choudhary','Noor Ahmad'].indexOf(b.name) >= 0;
+      return ['Jamie Overton','Anshul Kamboj','Mukesh Choudhary','Noor Ahmad','Khaleel Ahmed'].indexOf(b.name) >= 0;
     });
 
   var maxOvers   = Math.ceil(STATE.totalOvers / 5);
@@ -743,7 +744,7 @@ function selectBowler(index) {
   var bowlingTeam = STATE.innings === 1 ? STATE.teamB : STATE.teamA;
   var roster = bowlingTeam === 'RCB' ? RCB_BOWLING_ORDER :
     CSK_BATTING_ORDER.filter(function(b) {
-      return ['Jamie Overton','Anshul Kamboj','Mukesh Choudhary','Noor Ahmad'].indexOf(b.name) >= 0;
+      return ['Jamie Overton','Anshul Kamboj','Mukesh Choudhary','Noor Ahmad','Khaleel Ahmed'].indexOf(b.name) >= 0;
     });
   var chosen = roster[index];
   if (!chosen) return;
@@ -2089,7 +2090,7 @@ function startSecondInnings() {
 
   // Set opening bowler for the 2nd innings bowling team
   var bowl2Roster = STATE.teamA === 'RCB' ? RCB_BOWLING_ORDER : CSK_BATTING_ORDER.filter(function(b) {
-    return ['Jamie Overton','Anshul Kamboj','Mukesh Choudhary','Noor Ahmad'].indexOf(b.name) >= 0;
+    return ['Jamie Overton','Anshul Kamboj','Mukesh Choudhary','Noor Ahmad','Khaleel Ahmed'].indexOf(b.name) >= 0;
   });
   var opener = bowl2Roster[0] || { name: 'Bowler', initials: 'BW' };
   STATE.bowler = { name: opener.name, initials: opener.initials, overs: 0, legalBalls: 0, runs: 0, wickets: 0, wides: 0, nb: 0 };
@@ -2575,7 +2576,7 @@ function completeToss(decision) {
   const bwInput = document.getElementById('bowler-name-input');
   
   const batRoster = batFirstTeam === 'CSK' ? CSK_BATTING_ORDER : RCB_BATTING_ORDER;
-  const bowlRoster = bowlFirstTeam === 'RCB' ? RCB_BOWLING_ORDER : CSK_BATTING_ORDER.filter(b => ['Jamie Overton','Anshul Kamboj','Mukesh Choudhary','Noor Ahmad'].includes(b.name));
+  const bowlRoster = bowlFirstTeam === 'RCB' ? RCB_BOWLING_ORDER : CSK_BATTING_ORDER.filter(b => ['Jamie Overton','Anshul Kamboj','Mukesh Choudhary','Noor Ahmad','Khaleel Ahmed'].includes(b.name));
   
   if (strInput) strInput.value = batRoster[0].name;
   if (nsInput) nsInput.value = batRoster[1].name;
