@@ -670,12 +670,19 @@ function selectBatter(name, initials) {
     showTimingToast('🏏 ' + name, delaySec, 'Batter change');
   }
 
-  STATE.striker = { name: name, initials: initials, runs: 0, balls: 0, fours: 0, sixes: 0 };
+  if (STATE.nonStriker && STATE.nonStriker.name === '- Incoming -') {
+    STATE.nonStriker = { name: name, initials: initials, runs: 0, balls: 0, fours: 0, sixes: 0 };
+    var inp = document.getElementById('nonstriker-name-input');
+    if (inp) inp.value = name;
+  } else {
+    STATE.striker = { name: name, initials: initials, runs: 0, balls: 0, fours: 0, sixes: 0 };
+    var inp = document.getElementById('striker-name-input');
+    if (inp) inp.value = name;
+  }
+  
   STATE.partnershipRuns  = 0;
   STATE.partnershipBalls = 0;
   document.getElementById('batter-modal').classList.add('sel-hidden');
-  var inp = document.getElementById('striker-name-input');
-  if (inp) inp.value = name;
   updatePlayerUI();
   updateQuickStats();
   updateTimePrediction();
