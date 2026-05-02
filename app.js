@@ -966,11 +966,11 @@ function completeOver() {
   STATE.totalReducedSeconds += fastBonus;
   STATE.reducedFast += fastBonus;
 
-  // Dew bonus
-  if (STATE.isDew) {
-    STATE.totalReducedSeconds += TIME_REDUCE.dew;
-    STATE.reducedDew += TIME_REDUCE.dew;
-  }
+  // Dew bonus (now applied as a lump sum in toggleDew)
+  // if (STATE.isDew) {
+  //   STATE.totalReducedSeconds += TIME_REDUCE.dew;
+  //   STATE.reducedDew += TIME_REDUCE.dew;
+  // }
 
   STATE.overRunsPerOver.push(runsThisOver);
 
@@ -1787,47 +1787,40 @@ function updateCharts() {
 // TOGGLE RAIN / DEW
 // ============================================================
 function toggleRain() {
-  STATE.isRain = !STATE.isRain;
-  if (STATE.isRain) {
-    STATE.totalAddedSeconds += TIME_COST.rain;
-    STATE.addedRain += TIME_COST.rain;
-    STATE.rainCount++;
-    showRainModal();
-  } else {
-    // Remove the last rain addition
-    const rainRemove = Math.min(STATE.totalAddedSeconds, TIME_COST.rain);
-    STATE.totalAddedSeconds -= rainRemove;
-    STATE.addedRain = Math.max(0, STATE.addedRain - rainRemove);
-  }
+  STATE.isRain = true;
+  STATE.totalAddedSeconds += TIME_COST.rain;
+  STATE.addedRain += TIME_COST.rain;
+  STATE.rainCount++;
+  showRainModal();
 
   const btn = document.getElementById('rain-toggle-btn');
-  const headerPill = document.getElementById('rain-pill-header');
   if (btn) {
-    btn.textContent = STATE.isRain ? 'ON' : 'OFF';
-    btn.className = `toggle-btn ${STATE.isRain ? 'on' : 'off'}`;
+    btn.textContent = 'ON';
+    btn.className = 'toggle-btn on';
   }
   const rainBtn = document.getElementById('btn-rain');
   if (rainBtn) {
-    rainBtn.style.background = STATE.isRain ? 'rgba(6,182,212,0.3)' : '';
-    rainBtn.textContent = STATE.isRain ? '🌧 RAIN: ON' : '🌧 RAIN TOGGLE';
+    rainBtn.style.background = 'rgba(6,182,212,0.3)';
+    rainBtn.textContent = '🌧 RAIN: ON';
   }
   updateTimePrediction();
 }
 
 function toggleDew() {
-  STATE.isDew = !STATE.isDew;
-  if (STATE.isDew) {
-    showDewModal();
-  }
+  STATE.isDew = true;
+  STATE.totalReducedSeconds += 120; // 2 mins instant speedup
+  STATE.reducedDew += 120;
+  showDewModal();
+
   const btn = document.getElementById('dew-toggle-btn');
   if (btn) {
-    btn.textContent = STATE.isDew ? 'ON' : 'OFF';
-    btn.className = `toggle-btn ${STATE.isDew ? 'on' : 'off'}`;
+    btn.textContent = 'ON';
+    btn.className = 'toggle-btn on';
   }
   const dewBtn = document.getElementById('btn-dew');
   if (dewBtn) {
-    dewBtn.style.background = STATE.isDew ? 'rgba(59,130,246,0.3)' : '';
-    dewBtn.textContent = STATE.isDew ? '💧 DEW: ON' : '💧 DEW TOGGLE';
+    dewBtn.style.background = 'rgba(59,130,246,0.3)';
+    dewBtn.textContent = '💧 DEW: ON';
   }
   updateTimePrediction();
 }
@@ -2645,7 +2638,7 @@ function showRainModal() {
       '</div>' +
       '<div style="padding: 30px;">' +
         '<p style="color: #94a3b8; font-size: 1.1rem; margin-bottom: 20px;">Time cost penalty added. Covers are coming on.</p>' +
-        '<button class="msm-btn" style="background: #3b82f6; color: #fff; padding: 12px 30px; border: none; font-weight: bold; border-radius: 6px; cursor: pointer;" onclick="document.getElementById(\'rain-modal\').remove()">ACKNOWLEDGE</button>' +
+        '<button class="msm-btn" style="background: #3b82f6; color: #fff; padding: 12px 30px; border: none; font-weight: bold; border-radius: 6px; cursor: pointer;" onclick="document.getElementById(\'rain-modal\').remove(); document.getElementById(\'rain-toggle-btn\').textContent = \'OFF\'; document.getElementById(\'rain-toggle-btn\').className = \'toggle-btn off\'; STATE.isRain = false;">ACKNOWLEDGE</button>' +
       '</div>' +
     '</div>' +
   '</div>';
@@ -2685,7 +2678,7 @@ function showDewModal() {
       '</div>' +
       '<div style="padding: 30px;">' +
         '<p style="color: #94a3b8; font-size: 1.1rem; margin-bottom: 20px;">Match speed-up factor applied. Bowlers will struggle to grip the ball.</p>' +
-        '<button class="msm-btn" style="background: #06b6d4; color: #fff; padding: 12px 30px; border: none; font-weight: bold; border-radius: 6px; cursor: pointer;" onclick="document.getElementById(\'dew-modal\').remove()">ACKNOWLEDGE</button>' +
+        '<button class="msm-btn" style="background: #06b6d4; color: #fff; padding: 12px 30px; border: none; font-weight: bold; border-radius: 6px; cursor: pointer;" onclick="document.getElementById(\'dew-modal\').remove(); document.getElementById(\'dew-toggle-btn\').textContent = \'OFF\'; document.getElementById(\'dew-toggle-btn\').className = \'toggle-btn off\'; STATE.isDew = false;">ACKNOWLEDGE</button>' +
       '</div>' +
     '</div>' +
   '</div>';
