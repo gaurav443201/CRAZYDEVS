@@ -1047,8 +1047,18 @@ function updateBowlerList() {
 // SWAP BATTERS
 // ============================================================
 function swapBatters() {
-  // Never swap when either player is still the 'Incoming' placeholder
-  if (STATE.striker.name === '- Incoming -' || STATE.nonStriker.name === '- Incoming -') return;
+  // SMART SWAP: wicket fell on last ball of over.
+  // Cricket rule: the surviving non-striker comes to FACE the new over.
+  // The incoming (placeholder) batter becomes the new NON-STRIKER.
+  if (STATE.striker.name === INCOMING_PLACEHOLDER) {
+    STATE.striker    = STATE.nonStriker; // surviving batter faces next over
+    STATE.nonStriker = { name: INCOMING_PLACEHOLDER, initials: '?', runs: 0, balls: 0, fours: 0, sixes: 0 };
+    updatePlayerUI();
+    return;
+  }
+  // If only nonStriker is incoming (unusual state), just skip the swap
+  if (STATE.nonStriker.name === INCOMING_PLACEHOLDER) return;
+
   const temp = STATE.striker;
   STATE.striker = STATE.nonStriker;
   STATE.nonStriker = temp;
