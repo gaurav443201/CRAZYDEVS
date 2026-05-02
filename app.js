@@ -615,11 +615,17 @@ function addEvent(type) {
 // ============================================================
 // BATTER SELECTION MODAL
 // ============================================================
+const INCOMING_PLACEHOLDER = '- Incoming -';
+
 function showBatterModal() {
   const dismissedNames = new Set(STATE.dismissals.map(d => d.name));
   const battingTeamName = STATE.innings === 1 ? STATE.teamA : STATE.teamB;
   const roster = battingTeamName === 'CSK' ? CSK_BATTING_ORDER : RCB_BATTING_ORDER;
-  const occupied = new Set([STATE.striker.name, STATE.nonStriker.name]);
+
+  // Exclude the placeholder from the occupied set so it doesn't pollute the filter
+  const occupied = new Set(
+    [STATE.striker.name, STATE.nonStriker.name].filter(n => n !== INCOMING_PLACEHOLDER)
+  );
 
   const remaining = roster.filter(b =>
     !dismissedNames.has(b.name) && !occupied.has(b.name)
@@ -628,7 +634,7 @@ function showBatterModal() {
   const listEl = document.getElementById('batter-list');
   if (!listEl) return;
 
-  // IMPORTANT FIX: Auto-assign if exactly 1 batter left
+  // Auto-assign if exactly 1 batter left
   if (remaining.length === 1) {
     selectBatter(remaining[0].name, remaining[0].initials);
     return;
@@ -637,7 +643,7 @@ function showBatterModal() {
   if (remaining.length === 0) {
     listEl.innerHTML = '<div class="sel-empty">All batters dismissed! Match over.</div>';
   } else {
-    listEl.innerHTML = remaining.map((b, idx) => {
+    listEl.innerHTML = remaining.map((b) => {
       const pos  = roster.indexOf(b) + 1;
       const role = getPlayerRole(b.name);
       const safeN = b.name.replace(/"/g, '&quot;');
@@ -663,19 +669,18 @@ function selectBatter(name, initials) {
   if (STATE.wicketTimestamp) {
     delaySec = Math.round((Date.now() - STATE.wicketTimestamp) / 1000);
     STATE.wicketTimestamp = null;
-    // Clamp to realistic range (5s–120s)
     delaySec = Math.max(5, Math.min(120, delaySec));
     STATE.totalAddedSeconds += delaySec;
     STATE.addedWickets      += delaySec;
     showTimingToast('🏏 ' + name, delaySec, 'Batter change');
   }
 
-  // Always fill striker first when it is the placeholder (wicket scenario)
-  if (STATE.striker && STATE.striker.name === '- Incoming -') {
+  // Fill whichever slot is the placeholder — striker takes priority (wicket scenario)
+  if (STATE.striker && STATE.striker.name === INCOMING_PLACEHOLDER) {
     STATE.striker = { name: name, initials: initials, runs: 0, balls: 0, fours: 0, sixes: 0 };
     var inp = document.getElementById('striker-name-input');
     if (inp) inp.value = name;
-  } else if (STATE.nonStriker && STATE.nonStriker.name === '- Incoming -') {
+  } else if (STATE.nonStriker && STATE.nonStriker.name === INCOMING_PLACEHOLDER) {
     STATE.nonStriker = { name: name, initials: initials, runs: 0, balls: 0, fours: 0, sixes: 0 };
     var inp = document.getElementById('nonstriker-name-input');
     if (inp) inp.value = name;
@@ -684,13 +689,20 @@ function selectBatter(name, initials) {
     var inp = document.getElementById('striker-name-input');
     if (inp) inp.value = name;
   }
-  
+
   STATE.partnershipRuns  = 0;
   STATE.partnershipBalls = 0;
   document.getElementById('batter-modal').classList.add('sel-hidden');
   updatePlayerUI();
   updateQuickStats();
   updateTimePrediction();
+
+  // ── STALE STATE RECOVERY ──────────────────────────────────────────
+  // If nonStriker is STILL Incoming after we just filled striker,
+  // it means stale localStorage left nonStriker as a placeholder.
+  // Re-fire the modal so the user can pick the non-striker too.
+  if (STATE.nonStriker && STATE.nonStriker.name === INCOMING_PLACEHOLDER) {
+    setTimeout(() => showBatterModal(), 200);
 }
 
 // ============================================================
