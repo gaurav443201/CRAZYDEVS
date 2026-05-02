@@ -670,7 +670,12 @@ function selectBatter(name, initials) {
     showTimingToast('🏏 ' + name, delaySec, 'Batter change');
   }
 
-  if (STATE.nonStriker && STATE.nonStriker.name === '- Incoming -') {
+  // Always fill striker first when it is the placeholder (wicket scenario)
+  if (STATE.striker && STATE.striker.name === '- Incoming -') {
+    STATE.striker = { name: name, initials: initials, runs: 0, balls: 0, fours: 0, sixes: 0 };
+    var inp = document.getElementById('striker-name-input');
+    if (inp) inp.value = name;
+  } else if (STATE.nonStriker && STATE.nonStriker.name === '- Incoming -') {
     STATE.nonStriker = { name: name, initials: initials, runs: 0, balls: 0, fours: 0, sixes: 0 };
     var inp = document.getElementById('nonstriker-name-input');
     if (inp) inp.value = name;
@@ -1029,6 +1034,8 @@ function updateBowlerList() {
 // SWAP BATTERS
 // ============================================================
 function swapBatters() {
+  // Never swap when either player is still the 'Incoming' placeholder
+  if (STATE.striker.name === '- Incoming -' || STATE.nonStriker.name === '- Incoming -') return;
   const temp = STATE.striker;
   STATE.striker = STATE.nonStriker;
   STATE.nonStriker = temp;
@@ -1496,14 +1503,24 @@ function updatePlayerUI() {
 
   // Non-striker
   const ns = STATE.nonStriker;
-  setText('nonstriker-name', ns.name);
-  setText('nonstriker-runs', ns.runs);
-  setText('nonstriker-balls', ns.balls);
-  setText('nonstriker-fours', ns.fours);
-  setText('nonstriker-sixes', ns.sixes);
-  const nsr = ns.balls > 0 ? ((ns.runs / ns.balls) * 100).toFixed(1) : '0.0';
-  setText('nonstriker-sr', nsr);
-  setText('nonstriker-avatar', ns.initials || getInitials(ns.name));
+  if (ns.name === '- Incoming -') {
+    setText('nonstriker-name', 'Next batter...');
+    setText('nonstriker-runs', '-');
+    setText('nonstriker-balls', '-');
+    setText('nonstriker-fours', '-');
+    setText('nonstriker-sixes', '-');
+    setText('nonstriker-sr', '-');
+    setText('nonstriker-avatar', '?');
+  } else {
+    setText('nonstriker-name', ns.name);
+    setText('nonstriker-runs', ns.runs);
+    setText('nonstriker-balls', ns.balls);
+    setText('nonstriker-fours', ns.fours);
+    setText('nonstriker-sixes', ns.sixes);
+    const nsr = ns.balls > 0 ? ((ns.runs / ns.balls) * 100).toFixed(1) : '0.0';
+    setText('nonstriker-sr', nsr);
+    setText('nonstriker-avatar', ns.initials || getInitials(ns.name));
+  }
 
   // Bowler
   const bw = STATE.bowler;
