@@ -1174,11 +1174,11 @@ function updateTimePrediction() {
   
   transport_decision(remainingMin, p10, p20, p30, match_context);
 
-  // ── AUTO 15-MIN PRE-DISPATCH ─────────────────────────────────────────────
-  // Fire once when estimated remaining time drops to ≤15 min
-  if (remainingMin <= 15 && remainingMin > 0 && !STATE.preDispatchSent && STATE.legalBalls > 12 && !STATE.matchEnded) {
+  // ── AUTO 10-MIN PRE-DISPATCH ─────────────────────────────────────────────
+  // Fire once when estimated remaining time drops to ≤10 min
+  if (remainingMin <= 10 && remainingMin > 0 && !STATE.preDispatchSent && STATE.legalBalls > 12 && !STATE.matchEnded) {
     STATE.preDispatchSent = true;
-    showPreDispatchAlert(Math.ceil(remainingMin));
+    showPreDispatchAlert(10);
   }
 
   const sign = netSeconds >= 0 ? '+' : '';
@@ -2207,30 +2207,54 @@ function showPreDispatchAlert(minsRemaining) {
   var buses = (STATE.transport_state ? STATE.transport_state.buses : 25);
   var el = document.createElement('div');
   el.id = 'pre-dispatch-alert';
-  el.className = 'pda-toast';
+  el.className = 'timing-toast';
+  // Override styles to make it a "little bigger version" of the timing toast
+  el.style.bottom = '100px'; 
+  el.style.minWidth = '320px';
+  el.style.maxWidth = '400px';
+  el.style.padding = '1rem 1.25rem';
+  el.style.border = '1px solid rgba(255, 77, 109, 0.4)';
+  el.style.boxShadow = '0 10px 30px rgba(0,0,0,0.6), 0 0 20px rgba(255, 77, 109, 0.2)';
+  el.style.zIndex = '6000';
+
   el.innerHTML =
-    '<div class="pda-header">' +
-      '<span class="pda-siren">🚨</span>' +
-      '<span class="pda-title">AUTO PRE-DISPATCH — ' + minsRemaining + ' MIN TO MATCH END</span>' +
-      '<button class="pda-close" onclick="document.getElementById(\'pre-dispatch-alert\').remove()">✕</button>' +
+    '<div class="tt-row" style="margin-bottom: 8px;">' +
+      '<span class="tt-icon" style="color: #ff4d6d; animation: pulseSiren 1s infinite;">🚨</span>' +
+      '<span class="tt-label" style="font-size: 0.75rem; color: #ff4d6d; letter-spacing: 1.5px; font-weight: bold;">TRANSPORT DISPATCH ACTIVE</span>' +
+      '<span class="tt-sec" style="color: #ff4d6d; font-size: 1rem;">10 MIN</span>' +
     '</div>' +
-    '<div class="pda-body">' +
-      '<div class="pda-stat"><span>🚍</span><strong>' + buses + ' Buses</strong><small>Dispatched to stadium exits</small></div>' +
-      '<div class="pda-stat"><span>🚇</span><strong>Metro +5 min</strong><small>Frequency increased</small></div>' +
-      '<div class="pda-stat"><span>⏱</span><strong>~' + minsRemaining + ' min</strong><small>Est. time remaining</small></div>' +
-    '</div>' +
-    '<div class="pda-footer">Transport coordination system pre-dispatched automatically based on live match data pipeline.</div>';
+    '<div class="tt-player" style="font-size: 0.95rem; color: #fff; margin-bottom: 6px; white-space: normal; line-height: 1.4;">INFORM: RESCHEDULE THE METRO AND BUSES</div>' +
+    '<div class="tt-player" style="font-size: 0.75rem; color: #94a3b8; font-weight: 400; margin-bottom: 12px; white-space: normal; line-height: 1.3;">Est. match end in ~10 mins. ' + buses + ' buses dispatched. Metro frequency increased.</div>' +
+    '<div class="tt-bar-wrap" style="height: 4px; background: rgba(255,77,109,0.15);">' +
+      '<div class="tt-bar" style="width: 100%; height: 100%; background: #ff4d6d; transition: width 10s linear;"></div>' +
+    '</div>';
 
   document.body.appendChild(el);
-  setTimeout(function() { el.classList.add('pda-show'); }, 50);
+  
+  // Show it
+  setTimeout(() => el.classList.add('tt-show'), 50);
+
+  // Animate the bar
+  setTimeout(() => {
+    const bar = el.querySelector('.tt-bar');
+    if (bar) bar.style.width = '0%';
+  }, 100);
+  
+  // Remove after 10s
+  setTimeout(() => {
+    if (el) {
+      el.classList.remove('tt-show');
+      setTimeout(() => el.remove(), 400);
+    }
+  }, 10000);
 
   // Log to transport system
   send_to_transport_system({
-    status: '15-MIN PRE-DISPATCH',
+    status: '10-MIN PRE-DISPATCH',
     crowd: 'HIGH',
     buses: buses,
     metro_delay: 5,
-    action: '15-Min Pre-Dispatch Active'
+    action: '10-Min Pre-Dispatch Active'
   });
 
   // Update transport card
