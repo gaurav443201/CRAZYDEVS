@@ -2086,37 +2086,8 @@ function startSecondInnings() {
   cskBatterIndex = 0;   // reset batter index for RCB
   rcbBowlerIndex = 0;   // reset bowler index for CSK
 
-  // Set openers for the 2nd innings batting team
-  var bat2Roster = STATE.teamB === 'CSK' ? CSK_BATTING_ORDER : RCB_BATTING_ORDER;
-  STATE.striker    = { name: bat2Roster[0].name, initials: bat2Roster[0].initials, runs: 0, balls: 0, fours: 0, sixes: 0 };
-  STATE.nonStriker = { name: bat2Roster[1].name, initials: bat2Roster[1].initials, runs: 0, balls: 0, fours: 0, sixes: 0 };
-  cskBatterIndex = 2;   // next incoming batter is index 2
-
-  // Set opening bowler for the 2nd innings bowling team
-  var bowl2Roster = STATE.teamA === 'RCB' ? RCB_BOWLING_ORDER : CSK_BATTING_ORDER.filter(function(b) {
-    return ['Jamie Overton','Anshul Kamboj','Mukesh Choudhary','Noor Ahmad','Khaleel Ahmed'].indexOf(b.name) >= 0;
-  });
-  var opener = bowl2Roster[0] || { name: 'Bowler', initials: 'BW' };
-  STATE.bowler = { name: opener.name, initials: opener.initials, overs: 0, legalBalls: 0, runs: 0, wickets: 0, wides: 0, nb: 0 };
-  rcbBowlerIndex = 1;
-
-  // Update target area in header
-  var tLabel = document.querySelector('.target-label');
-  if (tLabel) tLabel.textContent = 'TARGET';
-
-  // (Team brand hero display is handled inside updateAllUI() which swaps them dynamically)
-
-  // Sync settings inputs
-  var strInp = document.getElementById('striker-name-input');
-  var nsInp  = document.getElementById('nonstriker-name-input');
-  var bwInp  = document.getElementById('bowler-name-input');
-  if (strInp) strInp.value = STATE.striker.name;
-  if (nsInp)  nsInp.value  = STATE.nonStriker.name;
-  if (bwInp)  bwInp.value  = STATE.bowler.name;
-
-  updateAllUI();
-  updateCharts();
-  updateScorecardUI();
+  // Instead of auto-assigning openers, trigger the manual innings setup modal
+  showInningsSetupModal(STATE.teamB, STATE.teamA);
 }
 
 // ── Kept for backward-compat (INNINGS BREAK button) ──────────
@@ -2593,31 +2564,161 @@ function completeToss(decision) {
 
   STATE.teamA = batFirstTeam;
   STATE.teamB = bowlFirstTeam;
-  
+
   const taInput = document.getElementById('team-a-input');
   const tbInput = document.getElementById('team-b-input');
   if (taInput) taInput.value = STATE.teamA;
   if (tbInput) tbInput.value = STATE.teamB;
-  
-  const strInput = document.getElementById('striker-name-input');
-  const nsInput = document.getElementById('nonstriker-name-input');
-  const bwInput = document.getElementById('bowler-name-input');
-  
-  const batRoster = batFirstTeam === 'CSK' ? CSK_BATTING_ORDER : RCB_BATTING_ORDER;
-  const bowlRoster = bowlFirstTeam === 'RCB' ? RCB_BOWLING_ORDER : CSK_BATTING_ORDER.filter(b => ['Jamie Overton','Anshul Kamboj','Mukesh Choudhary','Noor Ahmad','Khaleel Ahmed'].includes(b.name));
-  
-  STATE.striker.name = batRoster[0].name;
-  STATE.striker.initials = getInitials(batRoster[0].name);
-  STATE.nonStriker.name = batRoster[1].name;
-  STATE.nonStriker.initials = getInitials(batRoster[1].name);
-  if (bowlRoster.length > 0) {
-    STATE.bowler.name = bowlRoster[0].name;
-    STATE.bowler.initials = getInitials(bowlRoster[0].name);
-  }
-  
+
   document.getElementById('toss-modal').style.display = 'none';
-  
-  initSettings();
+
+  // Manually pick 2 openers + 1 bowler
+  showInningsSetupModal(STATE.teamA, STATE.teamB);
+}
+
+// ============================================================
+// INNINGS SETUP MODAL  — manual selection of 2 batters + 1 bowler
+// ============================================================
+function showInningsSetupModal(battingTeam, bowlingTeam) {
+  const batRoster  = battingTeam  === 'CSK' ? CSK_BATTING_ORDER  : RCB_BATTING_ORDER;
+  const bowlRoster = bowlingTeam  === 'RCB' ? RCB_BOWLING_ORDER  :
+    CSK_BATTING_ORDER.filter(b => ['Jamie Overton','Anshul Kamboj','Mukesh Choudhary','Noor Ahmad','Khaleel Ahmed'].includes(b.name));
+
+  // Reset any prior temp selections
+  var selected = { striker: null, nonStriker: null, bowler: null };
+
+  function buildModal(step) {
+    var existing = document.getElementById('innings-setup-modal');
+    if (existing) existing.remove();
+
+    var title, subtitle, avatarClass, list;
+
+    if (step === 'striker') {
+      title = '🏏 SELECT STRIKER';
+      subtitle = battingTeam + ' — Choose Opening Batsman (Facing First)';
+      avatarClass = battingTeam === 'CSK' ? 'csk-av' : 'rcb-av';
+      list = batRoster.map(b => {
+        const safeN = b.name.replace(/"/g, '&quot;');
+        return '<button class="sel-player-btn" onclick="inningsSetupPick(\'striker\',' +
+               '\''+safeN+'\',\''+b.initials+'\')">' +
+               '<div class="sel-avatar '+avatarClass+'">'+b.initials+'</div>' +
+               '<div class="sel-player-info"><div class="sel-player-name">'+b.name+'</div>' +
+               '<div class="sel-player-meta">Batting Pos '+(batRoster.indexOf(b)+1)+'</div></div>' +
+               '<span class="sel-arrow">&#8594;</span></button>';
+      }).join('');
+
+    } else if (step === 'nonStriker') {
+      title = '🏏 SELECT NON-STRIKER';
+      subtitle = battingTeam + ' — Choose Opening Batsman (Non-Facing)';
+      avatarClass = battingTeam === 'CSK' ? 'csk-av' : 'rcb-av';
+      const excludeName = selected.striker ? selected.striker.name : '';
+      list = batRoster.filter(b => b.name !== excludeName).map(b => {
+        const safeN = b.name.replace(/"/g, '&quot;');
+        return '<button class="sel-player-btn" onclick="inningsSetupPick(\'nonStriker\',' +
+               '\''+safeN+'\',\''+b.initials+'\')">' +
+               '<div class="sel-avatar '+avatarClass+'">'+b.initials+'</div>' +
+               '<div class="sel-player-info"><div class="sel-player-name">'+b.name+'</div>' +
+               '<div class="sel-player-meta">Batting Pos '+(batRoster.indexOf(b)+1)+'</div></div>' +
+               '<span class="sel-arrow">&#8594;</span></button>';
+      }).join('');
+
+    } else if (step === 'bowler') {
+      title = '🎳 SELECT OPENING BOWLER';
+      subtitle = bowlingTeam + ' — Choose Opening Bowler';
+      avatarClass = bowlingTeam === 'RCB' ? 'rcb-av' : 'csk-av';
+      list = bowlRoster.map((b, i) => {
+        const safeN = b.name.replace(/"/g, '&quot;');
+        return '<button class="sel-player-btn" onclick="inningsSetupPick(\'bowler\',' +
+               '\''+safeN+'\',\''+b.initials+'\')">' +
+               '<div class="sel-avatar '+avatarClass+'">'+b.initials+'</div>' +
+               '<div class="sel-player-info"><div class="sel-player-name">'+b.name+'</div>' +
+               '<div class="sel-player-meta">Bowling Pos '+(i+1)+'</div></div>' +
+               '<span class="sel-arrow">&#8594;</span></button>';
+      }).join('');
+    }
+
+    // Step progress bar
+    var stepNum = step === 'striker' ? 1 : step === 'nonStriker' ? 2 : 3;
+    var progress = ['<div class="ism-steps">' +
+      '<span class="ism-step '+(stepNum>=1?'ism-step-done':'')+'">1 STRIKER</span>' +
+      '<span class="ism-step-sep">›</span>' +
+      '<span class="ism-step '+(stepNum>=2?'ism-step-done':'')+'">2 NON-STRIKER</span>' +
+      '<span class="ism-step-sep">›</span>' +
+      '<span class="ism-step '+(stepNum>=3?'ism-step-done':'')+'">3 BOWLER</span>' +
+    '</div>'].join('');
+
+    var html = '<div class="sel-overlay" id="innings-setup-modal" style="z-index:9999">' +
+      '<div class="sel-dialog">' +
+        '<div class="sel-dialog-header" style="background:linear-gradient(135deg,#1e293b,#0f172a)">' +
+          '<h2 class="sel-title" style="font-size:1.1rem">' + title + '</h2>' +
+          '<p class="sel-subtitle">' + subtitle + '</p>' +
+          progress +
+        '</div>' +
+        '<div class="sel-list">' + list + '</div>' +
+      '</div>' +
+    '</div>';
+
+    document.body.insertAdjacentHTML('beforeend', html);
+
+    // Store selected & step reference for click handler
+    window._ismSelected  = selected;
+    window._ismStep      = step;
+    window._ismBatRoster = batRoster;
+    window._ismBowlRoster = bowlRoster;
+    window._ismBatTeam   = battingTeam;
+    window._ismBowlTeam  = bowlingTeam;
+  }
+
+  window.inningsSetupPick = function(slot, name, initials) {
+    window._ismSelected[slot] = { name, initials };
+    var m = document.getElementById('innings-setup-modal');
+    if (m) m.remove();
+
+    if (slot === 'striker') {
+      buildModal('nonStriker');
+    } else if (slot === 'nonStriker') {
+      buildModal('bowler');
+    } else if (slot === 'bowler') {
+      // All 3 chosen — apply to STATE and continue
+      var s = window._ismSelected;
+      STATE.striker    = { name: s.striker.name,    initials: s.striker.initials,    runs: 0, balls: 0, fours: 0, sixes: 0 };
+      STATE.nonStriker = { name: s.nonStriker.name, initials: s.nonStriker.initials, runs: 0, balls: 0, fours: 0, sixes: 0 };
+      STATE.bowler     = { name: s.bowler.name,     initials: s.bowler.initials,     overs: 0, legalBalls: 0, runs: 0, wickets: 0, wides: 0, nb: 0 };
+
+      var strInp = document.getElementById('striker-name-input');
+      var nsInp  = document.getElementById('nonstriker-name-input');
+      var bwInp  = document.getElementById('bowler-name-input');
+      if (strInp) strInp.value = STATE.striker.name;
+      if (nsInp)  nsInp.value  = STATE.nonStriker.name;
+      if (bwInp)  bwInp.value  = STATE.bowler.name;
+
+      // If 1st innings just set up — initialise the rest of the settings
+      if (STATE.innings === 1) {
+        initSettings();
+      } else {
+        // 2nd innings — just refresh the UI
+        updateAllUI();
+        updateCharts();
+        updateScorecardUI();
+      }
+    }
+  };
+
+  // Inject quick CSS if not already present
+  if (!document.getElementById('ism-styles')) {
+    var s = document.createElement('style');
+    s.id = 'ism-styles';
+    s.textContent = `
+      .ism-steps { display:flex; align-items:center; gap:6px; margin-top:8px; flex-wrap:wrap; justify-content:center; }
+      .ism-step { font-size:0.62rem; letter-spacing:1px; color:var(--text-muted); font-weight:600; padding:3px 8px;
+                  border-radius:20px; background:rgba(255,255,255,0.05); }
+      .ism-step.ism-step-done { color:#4ade80; background:rgba(74,222,128,0.12); }
+      .ism-step-sep { color:var(--text-muted); font-size:0.7rem; }
+    `;
+    document.head.appendChild(s);
+  }
+
+  buildModal('striker');
 }
 
 // ============================================================
