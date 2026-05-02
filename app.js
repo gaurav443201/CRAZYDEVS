@@ -1085,7 +1085,7 @@ function recordDismissal(batter, mode, bowlerName) {
 
 function resetStriker() {
   // Temporary placeholder shown while judge picks batter
-  STATE.striker = { name: '— Incoming —', initials: '?', runs: 0, balls: 0, fours: 0, sixes: 0 };
+  STATE.striker = { name: INCOMING_PLACEHOLDER, initials: '?', runs: 0, balls: 0, fours: 0, sixes: 0 };
   
   // Only show batter picker modal if there are actually wickets remaining to fall
   if (STATE.wickets < 10) {
