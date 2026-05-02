@@ -703,6 +703,7 @@ function selectBatter(name, initials) {
   // Re-fire the modal so the user can pick the non-striker too.
   if (STATE.nonStriker && STATE.nonStriker.name === INCOMING_PLACEHOLDER) {
     setTimeout(() => showBatterModal(), 200);
+  }
 }
 
 // ============================================================
